@@ -1,0 +1,55 @@
+version: "3"
+services:
+  app:
+    image: docker-node
+    build: ./back_end
+    ports:
+      - "4000-4001:4000"
+    networks:
+      - webnet
+    deploy:
+      mode: replicated
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+  websocket:
+    image: docker-ws
+    build: ./back_end
+    ports:
+      - "6000:6000"
+    networks:
+      - webnet
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_URL=redis://cache
+    command: redis-server --appendonly yes
+    networks:
+      - webnet
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      - webnet
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # copy paste
+      #KAFKA_ADVERTISED_HOST_NAME: 192.168.99.100 # docker-machine ip
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ADVERTISED_PORT: "9092"
+      # KAFKA_CREATE_TOPICS: sales-topic:1:1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    networks:
+      - webnet
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+networks:
+  webnet:
